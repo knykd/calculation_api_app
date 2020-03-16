@@ -119,7 +119,16 @@ class ResultsController < ApplicationController
     response_success(:result, :making_bignum, result)
   end
 
-  def most; end
+  def most
+    str = query_params(request.fullpath.dup, request.path_info)
+    return response_bad_request if str.blank?
+
+    hash = str.upcase.each_char.group_by(&:itself).transform_values(&:length)
+    max_val = hash.values.max
+    results = hash.select { |key, val| val == max_val }
+    result = results.keys.join(',')
+    response_success(:result, :most, result)
+  end
 
   private
 
