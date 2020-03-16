@@ -93,7 +93,31 @@ class ResultsController < ApplicationController
     response_success(:result, :grouping, result)
   end
 
-  def making_bignum; end
+  def making_bignum
+    str = query_params(request.fullpath.dup, request.path_info)
+    return response_bad_request if str.blank?
+
+    arr = str.split(',').sort!.reverse!
+    arr.length.times do |i|
+      (arr.length - (i + 1)).times do |j|
+        next unless arr[j].to_i.digits.reverse[0] == arr[j + 1].to_i.digits.reverse[0]
+
+        arr[j].to_i.digits.length.times do |k|
+          if arr[j + 1].to_i.digits.reverse[k].nil?
+            if arr[j].to_i.digits.reverse[k] < arr[j + 1].to_i.digits.reverse[arr[j + 1].to_i.digits.length - 1]
+              arr[j], arr[j + 1] = arr[j + 1], arr[j]
+              break
+            end
+          elsif arr[j].to_i.digits.reverse[k] < arr[j + 1].to_i.digits.reverse[k]
+            arr[j], arr[j + 1] = arr[j + 1], arr[j]
+            break
+          end
+        end
+      end
+    end
+    result = arr.join
+    response_success(:result, :making_bignum, result)
+  end
 
   def most; end
 
