@@ -70,7 +70,28 @@ class ResultsController < ApplicationController
     response_success(:result, :calc, result)
   end
 
-  def grouping; end
+  def grouping
+    tmp = ''
+    result = ''
+    count = 1
+    str = query_params(request.fullpath.dup, request.path_info)
+    return response_bad_request if str.blank?
+
+    str.each_char.with_index do |char, index|
+      if tmp == char
+        count += 1
+      else
+        if count > 1
+          result += count.to_s
+          count = 1
+        end
+        result += char
+      end
+      tmp = char
+      result += count.to_s if str.length - 1 == index && count != 1
+    end
+    response_success(:result, :grouping, result)
+  end
 
   def making_bignum; end
 
