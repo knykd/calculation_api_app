@@ -1,9 +1,84 @@
 class ResultsController < ApplicationController
-  def calc; end
+  # 取り出す値の順位付け
+  def priority(val)
+    hash = { '(' => 5, '*' => 3, '×' => 3, '/' => 3, '÷' => 3,
+             '+' => 2, '＋' => 2, '-' => 2, '−' => 2, ')' => 1, 'BTM' => 0 }
+
+    rtn = hash[val]
+    rtn ||= 4
+  end
+
+  def calc
+    path = URI.unescape(request.fullpath.dup)
+    str = query_params(path, request.path_info)
+    return response_bad_request if str.blank?
+
+    arr = str.scan(/\d+\.\d+|\d+|[^\s\w]/)
+    stc = []                         # 逆ポーランド記法変換時の一時スタック
+    rev_stc = []                     # 逆ポーランド記法の式を格納するスタック
+
+    stc << 'BTM'                     # stackの底識別用
+
+    # パラメータを逆ポーランド記法に変換しスタックに格納
+    arr.each do |crt|
+      crt_val = priority(crt)
+      stc.size.times do |val|
+        stc_val = priority(stc[stc.size - 1])
+        if stc_val.to_i >= crt_val.to_i && stc[stc.size - 1] != '('
+          rev_stc << stc.pop
+        elsif crt_val.to_i > stc_val.to_i
+          stc << crt
+          break
+        elsif stc_val.to_i == 5 && crt_val.to_i == 1
+          stc.pop
+          break
+        else
+          stc << crt
+          break
+        end
+      end
+    end
+
+    # スタックに残った値を逆ポーランド記法のスタックに格納
+    stc.size.times do |val|
+      rev_stc <<  stc.pop
+    end
+
+    # 逆ポーランド記法の式を計算
+    rev_stc.size.times do |val|
+      i = rev_stc.shift
+      case i
+      when '+', '＋'
+        stc << stc.pop.to_f + stc.pop.to_f
+      when '-', '−'
+        num1 = stc.pop.to_f
+        num2 = stc.pop.to_f
+        stc << num2 - num1
+      when '*', '×'
+        stc << stc.pop.to_f * stc.pop.to_f
+      when '/', '÷'
+        num1 = stc.pop.to_f
+        num2 = stc.pop.to_f
+        stc << num2 / num1
+      when 'BTM'
+        break
+      else
+        stc << i
+      end
+    end
+    result = stc[0].truncate
+    response_success(:result, :calc, result)
+  end
 
   def grouping; end
 
   def making_bignum; end
 
   def most; end
+
+  private
+
+  def query_params(fullpath, path)
+    fullpath.sub!(/#{path}\?/, '')
+  end
 end
