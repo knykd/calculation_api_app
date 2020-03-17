@@ -30,3 +30,4 @@
 /.bundle
 /vendor
 .ruby-version
+.idea/
